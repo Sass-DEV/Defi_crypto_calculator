@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeFi Yield Master - Calculate & Compare DeFi Yields</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 min-h-screen text-white">
+    <!-- Header -->
+    <header class="bg-black/40 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                        DeFi Yield Master
+                    </h1>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <button onclick="showTab('calculator')" class="nav-btn text-cyan-400 border-b-2 border-cyan-400">Calculator</button>
+                    <button onclick="showTab('comparison')" class="nav-btn hover:text-cyan-400 transition-colors">Compare</button>
+                    <button onclick="showTab('impermanent')" class="nav-btn hover:text-cyan-400 transition-colors">IL Calculator</button>
+                    <button onclick="showTab('gas')" class="nav-btn hover:text-cyan-400 transition-colors">Gas Optimizer</button>
+                    <button onclick="showTab('learn')" class="nav-btn hover:text-cyan-400 transition-colors">Learn</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Yield Calculator Tab -->
+        <div id="calculator-tab" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Input Section -->
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-calculator mr-2 text-cyan-400"></i>
+                        Yield Calculator
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Initial Investment ($)</label>
+                            <input type="number" id="principal" value="1000" min="0" step="100"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Annual Percentage Yield (APY %)</label>
+                            <input type="number" id="apy" value="20" min="0" max="10000" step="0.1"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Time Period</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="timeValue" value="1" min="1" max="100"
+                                       class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                                <select id="timePeriod" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                                    <option value="days">Days</option>
+                                    <option value="months">Months</option>
+                                    <option value="years" selected>Years</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Compounding Frequency</label>
+                            <select id="compoundFreq" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                                <option value="1">Annually</option>
+                                <option value="12">Monthly</option>
+                                <option value="52">Weekly</option>
+                                <option value="365" selected>Daily</option>
+                                <option value="8760">Hourly</option>
+                                <option value="525600">Per Block (~15 sec)</option>
+                            </select>
+                        </div>
+                        
+                        <button onclick="calculateYield()" class="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 rounded-lg py-3 font-semibold transition-all transform hover:scale-105">
+                            Calculate Yield
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h3 class="text-xl font-semibold mb-4">Projected Earnings</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+                            <span class="text-gray-300">Final Amount</span>
+                            <span id="finalAmount" class="text-2xl font-bold text-cyan-400">$0.00</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+                            <span class="text-gray-300">Total Earnings</span>
+                            <span id="totalEarnings" class="text-xl font-semibold text-green-400">+$0.00</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+                            <span class="text-gray-300">ROI</span>
+                            <span id="roi" class="text-xl font-semibold">0%</span>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h4 class="text-sm font-semibold mb-2 text-gray-300">Earnings Breakdown</h4>
+                            <div class="grid grid-cols-3 gap-2 text-center">
+                                <div class="bg-white/5 rounded-lg p-3">
+                                    <div class="text-xs text-gray-400">Daily</div>
+                                    <div id="dailyEarnings" class="font-semibold text-cyan-300">$0.00</div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-3">
+                                    <div class="text-xs text-gray-400">Monthly</div>
+                                    <div id="monthlyEarnings" class="font-semibold text-cyan-300">$0.00</div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-3">
+                                    <div class="text-xs text-gray-400">Yearly</div>
+                                    <div id="yearlyEarnings" class="font-semibold text-cyan-300">$0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart Section -->
+            <div class="mt-6 bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <h3 class="text-xl font-semibold mb-4">Growth Projection</h3>
+                <canvas id="yieldChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Protocol Comparison Tab -->
+        <div id="comparison-tab" class="tab-content hidden">
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 mb-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-balance-scale mr-2 text-cyan-400"></i>
+                    Protocol Comparison
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Protocol cards will be inserted here by JavaScript -->
+                    <div id="protocolCards"></div>
+                </div>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <h3 class="text-lg font-semibold mb-4">Yield Comparison Chart</h3>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Impermanent Loss Calculator Tab -->
+        <div id="impermanent-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-exchange-alt mr-2 text-cyan-400"></i>
+                        Impermanent Loss Calculator
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Token A Initial Price ($)</label>
+                            <input type="number" id="tokenAInitial" value="1000" min="0" step="0.01"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Token B Initial Price ($)</label>
+                            <input type="number" id="tokenBInitial" value="100" min="0" step="0.01"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Token A Current Price ($)</label>
+                            <input type="number" id="tokenACurrent" value="1500" min="0" step="0.01"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Token B Current Price ($)</label>
+                            <input type="number" id="tokenBCurrent" value="120" min="0" step="0.01"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Initial Investment ($)</label>
+                            <input type="number" id="ilInvestment" value="10000" min="0" step="100"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <button onclick="calculateIL()" class="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 rounded-lg py-3 font-semibold transition-all transform hover:scale-105">
+                            Calculate Impermanent Loss
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h3 class="text-xl font-semibold mb-4">Results</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Impermanent Loss</div>
+                            <div id="ilPercentage" class="text-2xl font-bold text-red-400">0.00%</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Value if Held</div>
+                            <div id="hodlValue" class="text-xl font-semibold">$0.00</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Value in LP</div>
+                            <div id="lpValue" class="text-xl font-semibold">$0.00</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Loss Amount</div>
+                            <div id="lossAmount" class="text-xl font-semibold text-red-400">-$0.00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                        <p class="text-sm text-yellow-300">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Remember: IL is only realized when you withdraw from the pool. Pool fees may offset these losses.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gas Optimizer Tab -->
+        <div id="gas-tab" class="tab-content hidden">
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-gas-pump mr-2 text-cyan-400"></i>
+                    Gas Optimization Calculator
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Investment Amount ($)</label>
+                            <input type="number" id="gasInvestment" value="10000" min="0" step="100"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">APY (%)</label>
+                            <input type="number" id="gasApy" value="50" min="0" step="0.1"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">Gas Price (Gwei)</label>
+                            <input type="number" id="gasPrice" value="30" min="1" step="1"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2">ETH Price ($)</label>
+                            <input type="number" id="ethPrice" value="2000" min="1" step="1"
+                                   class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        
+                        <button onclick="optimizeGas()" class="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 rounded-lg py-3 font-semibold transition-all">
+                            Find Optimal Strategy
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold mb-2">Optimal Compound Frequency</h4>
+                            <div id="optimalFreq" class="text-2xl font-bold text-cyan-400">Daily</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold mb-2">Gas Cost per Transaction</h4>
+                            <div id="gasCost" class="text-xl text-yellow-400">$0.00</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold mb-2">Net APY (after gas)</h4>
+                            <div id="netApy" class="text-xl text-green-400">0.00%</div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold mb-2">Break-even Point</h4>
+                            <div id="breakeven" class="text-lg">0 days</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learn Tab -->
+        <div id="learn-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-graduation-cap mr-2 text-cyan-400"></i>
+                        DeFi Basics
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer" onclick="toggleLearnSection('apy')">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">What is APY?</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div id="learn-apy" class="hidden mt-2 text-sm text-gray-300">
+                                APY (Annual Percentage Yield) represents the real rate of return on your investment, taking into account the effect of compounding interest.
+                            </div>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer" onclick="toggleLearnSection('il')">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Understanding Impermanent Loss</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div id="learn-il" class="hidden mt-2 text-sm text-gray-300">
+                                Impermanent loss occurs when providing liquidity to AMMs. It's the difference between holding tokens vs providing liquidity when prices change.
+                            </div>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer" onclick="toggleLearnSection('compound')">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Compound Interest Power</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div id="learn-compound" class="hidden mt-2 text-sm text-gray-300">
+                                Compound interest is earning interest on your interest. The more frequently you compound, the faster your investment grows.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2 text-yellow-400"></i>
+                        Risk Warnings
+                    </h3>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-yellow-400 mr-2 mt-1"></i>
+                            <span>Smart contract risks - Always audit protocols before investing</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-yellow-400 mr-2 mt-1"></i>
+                            <span>Impermanent loss can exceed farming rewards</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-yellow-400 mr-2 mt-1"></i>
+                            <span>High APYs often indicate higher risk</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-yellow-400 mr-2 mt-1"></i>
+                            <span>Gas fees can significantly impact small investments</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-yellow-400 mr-2 mt-1"></i>
+                            <span>Always DYOR (Do Your Own Research)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-6 bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <h3 class="text-xl font-semibold mb-4">DeFi Glossary</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">TVL</span>
+                        <p class="text-sm text-gray-300 mt-1">Total Value Locked - The total value of assets deposited in a protocol</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">AMM</span>
+                        <p class="text-sm text-gray-300 mt-1">Automated Market Maker - Protocol that enables decentralized trading</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">LP Token</span>
+                        <p class="text-sm text-gray-300 mt-1">Liquidity Provider Token - Represents your share in a liquidity pool</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">Yield Farming</span>
+                        <p class="text-sm text-gray-300 mt-1">Earning rewards by providing liquidity or staking tokens</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">Slippage</span>
+                        <p class="text-sm text-gray-300 mt-1">Difference between expected and executed price in a trade</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <span class="font-semibold text-cyan-300">Flash Loan</span>
+                        <p class="text-sm text-gray-300 mt-1">Uncollateralized loan that must be repaid in the same transaction</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 py-6 text-center text-gray-400 text-sm border-t border-white/10">
+        <p>Built with <i class="fas fa-heart text-purple-400"></i> for Talent Protocol</p>
+        <p class="mt-2">Educational tool only - Not financial advice</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
